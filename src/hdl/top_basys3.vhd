@@ -12,7 +12,7 @@
 --|
 --| FILENAME      : top_basys3.vhd
 --| AUTHOR(S)     : Capt Phillip Warner
---| CREATED       : 3/9/2018  MOdified by Capt Dan Johnson (3/30/2020)
+--| CREATED       : 3/9/2018  Modified by C3C Sam Nissen (04/09/2024)
 --| DESCRIPTION   : This file implements the top level module for a BASYS 3 to 
 --|					drive the Lab 4 Design Project (Advanced Elevator Controller).
 --|
@@ -92,21 +92,74 @@ end top_basys3;
 architecture top_basys3_arch of top_basys3 is 
   
 	-- declare components and signals
-
+    component clock_divider is
+        generic ( constant k_DIV : natural := 2); --ACTION: confirm this is correct constant
+        
+        port (
+            i_clk   : in  std_logic;
+            i_reset : in  std_logic;
+            o_clk   : out std_logic
+        );
+        
+    end component clock_divider;
+     
+    component elevator_controller_fsm is
+        port (
+            i_up_down : in std_logic;
+            i_stop    : in std_logic;
+            i_reset   : in std_logic;
+            i_clk     : in std_logic;
+            o_floor   : out std_logic_vector (3 downto 0)
+        );
+        
+    end component elevator_controller_fsm; 
+        
+    component sevenSegDecoder is
+        port (
+            i_D : in  std_logic_vector (3 downto 0);
+            o_S : out std_logic_vector (6 downto 0)
+        );
+        
+    end component sevenSegDecoder;
+    
+    signal w_clk   : std_logic;
+    signal w_floor : std_logic_vector (3 downto 0);
   
 begin
 	-- PORT MAPS ----------------------------------------
-
+    clkdiv_inst : clock_divider
+        generic map (k_DIV => 25000000)
+        port map (
+            i_clk   => clk,
+            i_reset => btnL OR btnU, --IS THIS RIGHT??
+            o_clk   => w_clk
+        );
+        
+    elevator_inst : elevator_controller_fsm
+        port map (
+            i_up_down => sw(1),
+            i_stop    => sw(0),
+            i_reset   => btnR OR btnU,
+            i_clk     => w_clk,
+            o_floor   => w_floor
+        );
+       
+    sevenSeg_inst : sevenSegDecoder
+        port map (
+            i_D => w_floor,
+            o_S => seg
+        );
 	
 	
 	-- CONCURRENT STATEMENTS ----------------------------
 	
 	-- LED 15 gets the FSM slow clock signal. The rest are grounded.
-	
+	led <= (15 => w_clk, others => '0');
 
 	-- leave unused switches UNCONNECTED. Ignore any warnings this causes.
 	
 	-- wire up active-low 7SD anodes (an) as required
 	-- Tie any unused anodes to power ('1') to keep them off
+	an <= (2 => '0', others => '1');
 	
 end top_basys3_arch;
