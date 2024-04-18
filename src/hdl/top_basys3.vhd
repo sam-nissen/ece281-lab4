@@ -153,6 +153,8 @@ architecture top_basys3_arch of top_basys3 is
     signal w_floor_tdm : std_logic_vector (3 downto 0);
     signal w_tens      : std_logic_vector (3 downto 0);
     signal w_ones      : std_logic_vector (3 downto 0);
+    signal w_reset_clk : std_logic;
+    signal w_reset_fsm : std_logic;
   
 begin
 	-- PORT MAPS ----------------------------------------
@@ -160,7 +162,7 @@ begin
         generic map (k_DIV => 25000000) --2 Hz for elevator floor update
         port map (
             i_clk   => clk,
-            i_reset => (btnL OR btnU),
+            i_reset => w_reset_clk,
             o_clk   => w_clk_1
         );
         
@@ -168,7 +170,7 @@ begin
         generic map (k_DIV => 125000) --note different value, should get us to 100 fps (100 Hz) for "refresh rate"
         port map (
             i_clk   => clk,
-            i_reset => (btnL OR btnU),
+            i_reset => w_reset_clk,
             o_clk   => w_clk_2
         );
         
@@ -211,7 +213,8 @@ begin
 	
 	-- LED 15 gets the FSM slow clock signal. The rest are grounded.
 	led <= (15 => w_clk_1, others => '0');
-
+    w_reset_clk <= btnU OR btnL;
+    w_reset_fsm <= btnU OR btnR;
 	-- leave unused switches UNCONNECTED. Ignore any warnings this causes.
 	
 	-- wire up active-low 7SD anodes (an) as required
