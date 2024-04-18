@@ -190,7 +190,7 @@ begin
         port map (
             i_up_down => sw(1),
             i_stop    => sw(0),
-            i_reset   => btnR OR btnU,
+            i_reset   => w_reset_fsm,
             i_clk     => w_clk_1,
             o_floor   => w_floor
         );
