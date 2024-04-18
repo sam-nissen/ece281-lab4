@@ -93,7 +93,7 @@ architecture top_basys3_arch of top_basys3 is
   
 	-- declare components and signals
     component clock_divider is
-        generic ( constant k_DIV : natural := 2); --ACTION: confirm this is correct constant
+        generic ( constant k_DIV : natural := 2);
         
         port (
             i_clk   : in  std_logic;
@@ -113,7 +113,32 @@ architecture top_basys3_arch of top_basys3 is
         );
         
     end component elevator_controller_fsm; 
+    
+    component TDM4 is
+        generic ( constant k_WIDTH : natural  := 4); -- bits in input and output
         
+        port ( 
+            i_clk        : in  STD_LOGIC;
+            i_reset      : in  STD_LOGIC; -- asynchronous
+            i_D3         : in  STD_LOGIC_VECTOR (k_WIDTH - 1 downto 0);
+            i_D2         : in  STD_LOGIC_VECTOR (k_WIDTH - 1 downto 0);
+            i_D1         : in  STD_LOGIC_VECTOR (k_WIDTH - 1 downto 0);
+            i_D0         : in  STD_LOGIC_VECTOR (k_WIDTH - 1 downto 0);
+            o_data       : out STD_LOGIC_VECTOR (k_WIDTH - 1 downto 0);
+            o_sel        : out STD_LOGIC_VECTOR (3 downto 0)    -- selected data line (one-cold)
+        );
+    
+    end component TDM4;   
+    
+    component binaryToDecimal is
+        port ( 
+            i_bin : in std_logic_vector(3 downto 0);
+            o_tens : out std_logic_vector(3 downto 0);
+            o_ones : out std_logic_vector(3 downto 0)
+        );
+        
+    end component binaryToDecimal; 
+    
     component sevenSegDecoder is
         port (
             i_D : in  std_logic_vector (3 downto 0);
@@ -122,31 +147,62 @@ architecture top_basys3_arch of top_basys3 is
         
     end component sevenSegDecoder;
     
-    signal w_clk   : std_logic;
-    signal w_floor : std_logic_vector (3 downto 0);
+    signal w_clk_1     : std_logic;
+    signal w_clk_2     : std_logic;
+    signal w_floor     : std_logic_vector (3 downto 0);
+    signal w_floor_tdm : std_logic_vector (3 downto 0);
+    signal w_tens      : std_logic_vector (3 downto 0);
+    signal w_ones      : std_logic_vector (3 downto 0);
   
 begin
 	-- PORT MAPS ----------------------------------------
-    clkdiv_inst : clock_divider
-        generic map (k_DIV => 25000000)
+    clkdiv_inst_1 : clock_divider
+        generic map (k_DIV => 25000000) --2 Hz for elevator floor update
         port map (
             i_clk   => clk,
-            i_reset => btnL OR btnU, --IS THIS RIGHT??
-            o_clk   => w_clk
+            i_reset => (btnL OR btnU),
+            o_clk   => w_clk_1
         );
+        
+    clkdiv_inst_2 : clock_divider
+        generic map (k_DIV => 125000) --note different value, should get us to 100 fps (100 Hz) for "refresh rate"
+        port map (
+            i_clk   => clk,
+            i_reset => (btnL OR btnU),
+            o_clk   => w_clk_2
+        );
+        
+    tdm_inst : TDM4
+        port map (
+            i_clk   => w_clk_2,
+            i_reset => btnU,
+            i_D3    => w_tens,
+            i_D2    => w_ones,
+            i_D1    => x"0",
+            i_D0    => x"0",
+            o_data  => w_floor_tdm,
+            o_sel   => an --wire to anodes 2 and 3
+        );        
         
     elevator_inst : elevator_controller_fsm
         port map (
             i_up_down => sw(1),
             i_stop    => sw(0),
             i_reset   => btnR OR btnU,
-            i_clk     => w_clk,
+            i_clk     => w_clk_1,
             o_floor   => w_floor
         );
+        
+    btd_inst : binaryToDecimal
+        port map (
+            i_bin  => w_floor,
+            o_tens => w_tens,
+            o_ones => w_ones
+        );            
        
     sevenSeg_inst : sevenSegDecoder
         port map (
-            i_D => w_floor,
+            i_D => w_floor_tdm,
             o_S => seg
         );
 	
@@ -154,12 +210,12 @@ begin
 	-- CONCURRENT STATEMENTS ----------------------------
 	
 	-- LED 15 gets the FSM slow clock signal. The rest are grounded.
-	led <= (15 => w_clk, others => '0');
+	led <= (15 => w_clk_1, others => '0');
 
 	-- leave unused switches UNCONNECTED. Ignore any warnings this causes.
 	
 	-- wire up active-low 7SD anodes (an) as required
 	-- Tie any unused anodes to power ('1') to keep them off
-	an <= (2 => '0', others => '1');
+	--an <= (1 => '1', 0 => '1');
 	
 end top_basys3_arch;
