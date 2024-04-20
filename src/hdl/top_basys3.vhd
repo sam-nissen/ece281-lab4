@@ -12,7 +12,7 @@
 --|
 --| FILENAME      : top_basys3.vhd
 --| AUTHOR(S)     : Capt Phillip Warner
---| CREATED       : 3/9/2018  Modified by C3C Sam Nissen (04/09/2024)
+--| CREATED       : 3/9/2018  Modified by C3C Mikhail V Galaktionov 19 APRIL 2024
 --| DESCRIPTION   : This file implements the top level module for a BASYS 3 to 
 --|					drive the Lab 4 Design Project (Advanced Elevator Controller).
 --|
@@ -32,7 +32,7 @@
 --|							 an(3:0)    --> seven-segment display anode active-low enable (AN3 ... AN0)
 --|							 seg(6:0)	--> seven-segment display cathodes (CG ... CA.  DP unused)
 --|
---| DOCUMENTATION : None
+--| DOCUMENTATION : Collaborated with my roommate C3C Nissen
 --|
 --+----------------------------------------------------------------------------
 --|
@@ -107,8 +107,8 @@ architecture top_basys3_arch of top_basys3 is
         port (
             i_up_down : in std_logic;
             i_stop    : in std_logic;
-            i_reset   : in std_logic;
-            i_clk     : in std_logic;
+            i_reset   : in std_logic; -- 1 = Stop, 0 = Move
+            i_clk     : in std_logic; -- 1 = UP, 0 = DOWN
             o_floor   : out std_logic_vector (3 downto 0)
         );
         
@@ -130,14 +130,14 @@ architecture top_basys3_arch of top_basys3 is
     
     end component TDM4;   
     
-    component binaryToDecimal is
-        port ( 
-            i_bin : in std_logic_vector(3 downto 0);
-            o_tens : out std_logic_vector(3 downto 0);
-            o_ones : out std_logic_vector(3 downto 0)
-        );
+    --component binaryToDecimal is
+        --port ( 
+           -- i_bin : in std_logic_vector(3 downto 0);
+          --  o_tens : out std_logic_vector(3 downto 0);
+          --  o_ones : out std_logic_vector(3 downto 0)
+       -- );
         
-    end component binaryToDecimal; 
+  --  end component binaryToDecimal; 
     
     component sevenSegDecoder is
         port (
@@ -147,14 +147,16 @@ architecture top_basys3_arch of top_basys3 is
         
     end component sevenSegDecoder;
     
-    signal w_clk_1     : std_logic;
-    signal w_clk_2     : std_logic;
+    --SIGNAL DECLARATION
+    
+    signal w_clk, w_clk2, w_reset,w_stop,w_up_down  : std_logic := '0';
+
     signal w_floor     : std_logic_vector (3 downto 0);
-    signal w_floor_tdm : std_logic_vector (3 downto 0);
-    signal w_tens      : std_logic_vector (3 downto 0);
-    signal w_ones      : std_logic_vector (3 downto 0);
-    signal w_reset_clk : std_logic;
-    signal w_reset_fsm : std_logic;
+    signal o_tens      : std_logic_vector (3 downto 0);
+    signal o_ones      : std_logic_vector (3 downto 0); 
+    
+    signal w_data, w_sel : std_logic_vector (3 downto 0 );
+    signal w_D3, w_D2, w_D1, w_D0 : std_logic_vector(3 downto 0);
   
 begin
 	-- PORT MAPS ----------------------------------------
@@ -162,49 +164,50 @@ begin
         generic map (k_DIV => 25000000) --2 Hz for elevator floor update
         port map (
             i_clk   => clk,
-            i_reset => w_reset_clk,
-            o_clk   => w_clk_1
+            i_reset => btnL or btnU,
+            o_clk   => w_clk
         );
         
     clkdiv_inst_2 : clock_divider
-        generic map (k_DIV => 125000) --note different value, should get us to 100 fps (100 Hz) for "refresh rate"
+        generic map (k_DIV => 150000) --Value changed to reduce blinking effect on the human eye
         port map (
             i_clk   => clk,
-            i_reset => w_reset_clk,
-            o_clk   => w_clk_2
+            i_reset => '0',
+            o_clk   => w_clk2
         );
         
-    tdm_inst : TDM4
+    TDM4_inst : TDM4
         port map (
-            i_clk   => w_clk_2,
-            i_reset => btnU,
-            i_D3    => w_tens,
-            i_D2    => w_ones,
-            i_D1    => x"0",
-            i_D0    => x"0",
-            o_data  => w_floor_tdm,
-            o_sel   => an --wire to anodes 2 and 3
+            i_clk   => w_clk2,
+            i_reset => w_reset,
+            i_D3    => o_tens,
+            i_D2    => o_ones,
+            i_D1    => w_D1,
+            i_D0    => w_D0,
+            o_data  => w_data,
+            o_sel   => w_sel 
         );        
         
-    elevator_inst : elevator_controller_fsm
+    elevator_controller_inst : elevator_controller_fsm
         port map (
-            i_up_down => sw(1),
-            i_stop    => sw(0),
-            i_reset   => w_reset_fsm,
-            i_clk     => w_clk_1,
-            o_floor   => w_floor
+              i_clk      =>  w_clk,
+              i_reset    =>  btnU or btnR,
+              i_stop     =>  sw(0),
+              i_up_down  =>  sw(1),
+              o_floor    =>  w_floor 
         );
         
-    btd_inst : binaryToDecimal
-        port map (
-            i_bin  => w_floor,
-            o_tens => w_tens,
-            o_ones => w_ones
-        );            
+   --Previous implementation with an attempt at a binary to decimal conversion
+   -- btd_inst : binaryToDecimal
+     --   port map (
+      --      i_bin  => w_floor,
+        --    o_tens => w_tens,
+        --    o_ones => w_ones
+        --);            
        
     sevenSeg_inst : sevenSegDecoder
         port map (
-            i_D => w_floor_tdm,
+            i_D => w_data,
             o_S => seg
         );
 	
@@ -212,13 +215,34 @@ begin
 	-- CONCURRENT STATEMENTS ----------------------------
 	
 	-- LED 15 gets the FSM slow clock signal. The rest are grounded.
-	led <= (15 => w_clk_1, others => '0');
-    w_reset_clk <= btnU OR btnL;
-    w_reset_fsm <= btnU OR btnR;
+    led(14 downto 4)   <= (others => '0');
+    led(3)             <= w_floor(3);
+    led(2)             <= w_floor(2);
+    led(1)             <= w_floor(1);
+    led(0)             <= w_floor(0);
+    led(15)            <= w_clk;
+  
+  
+    o_tens <= "0001" when(w_floor >= "1010") 
+        or (w_floor = "0000") else "0000";
+    o_ones <= "0000" when (w_floor = "1010") else
+              "0001" when (w_floor = "1011") else
+              "0010" when (w_floor = "1100") else
+              "0011" when (w_floor = "1101") else
+              "0100" when (w_floor = "1110") else
+              "0101" when (w_floor = "1111") else
+              "0110" when (w_floor = "0000") else w_floor;
+              
+              
 	-- leave unused switches UNCONNECTED. Ignore any warnings this causes.
 	
 	-- wire up active-low 7SD anodes (an) as required
 	-- Tie any unused anodes to power ('1') to keep them off
 	--an <= (1 => '1', 0 => '1');
+	
+	an(0) <= '1';
+	an(1) <= '1';
+	an(2) <= w_sel(2);
+	an(3) <= w_sel(3);
 	
 end top_basys3_arch;

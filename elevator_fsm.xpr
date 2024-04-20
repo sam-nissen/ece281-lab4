@@ -3,7 +3,7 @@
 <!--                                                         -->
 <!-- Copyright 1986-2018 Xilinx, Inc. All Rights Reserved.   -->
 
-<Project Version="7" Minor="38" Path="C:/Users/Samuel.Nissen/Desktop/VivadoFiles/ece281-lab4/elevator_fsm.xpr">
+<Project Version="7" Minor="38" Path="C:/Users/Lukas/Desktop/ECE281 Stuff/ece281-lab4/elevator_fsm.xpr">
   <DefaultLaunch Dir="$PRUNDIR"/>
   <Configuration>
     <Option Name="Id" Val="b1c0a845f5be438ba899898319c7b414"/>
@@ -61,14 +61,10 @@
   <FileSets Version="1" Minor="31">
     <FileSet Name="sources_1" Type="DesignSrcs" RelSrcDir="$PSRCDIR/sources_1">
       <Filter Type="Srcs"/>
-      <File Path="$PPRDIR/src/hdl/TDM4.vhd">
+      <File Path="$PSRCDIR/sources_1/imports/ECE281 Stuff/ece281-ice6/src/hdl/TDM4.vhd">
         <FileInfo>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PSRCDIR/sources_1/new/binaryToHex.vhd">
-        <FileInfo>
+          <Attr Name="ImportPath" Val="$PPRDIR/../ece281-ice6/src/hdl/TDM4.vhd"/>
+          <Attr Name="ImportTime" Val="1712447777"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
@@ -79,20 +75,33 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../ece281-ice5/src/hdl/elevator_controller_fsm.vhd">
+      <File Path="$PSRCDIR/sources_1/imports/hdl/elevator_controller_fsm.vhd">
         <FileInfo>
+          <Attr Name="ImportPath" Val="$PPRDIR/../ece281-ice5/src/hdl/elevator_controller_fsm.vhd"/>
+          <Attr Name="ImportTime" Val="1712379475"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../ece281-lab2/src/hdl/sevenSegDecoder.vhd">
+      <File Path="$PSRCDIR/sources_1/imports/ECE281 Stuff/ece281-lab2/src/hdl/sevenSegDecoder.vhd">
         <FileInfo>
+          <Attr Name="ImportPath" Val="$PPRDIR/../ece281-lab2/src/hdl/sevenSegDecoder.vhd"/>
+          <Attr Name="ImportTime" Val="1709098067"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
       <File Path="$PPRDIR/src/hdl/top_basys3.vhd">
         <FileInfo SFType="VHDL2008">
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PSRCDIR/sources_1/imports/hdl/TDM4.vhd">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="ImportPath" Val="$PPRDIR/../ece281-ice6/src/hdl/TDM4.vhd"/>
+          <Attr Name="ImportTime" Val="1712447777"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
